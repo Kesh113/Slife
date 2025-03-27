@@ -1,10 +1,10 @@
-import uuid
-
+from django.conf import settings
 from django.contrib.auth import validators
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils.text import slugify
 
 
 USERNAME_HELP_TEXT = ('Обязательное поле. Только буквы,'
@@ -61,12 +61,22 @@ class SlifeUser(AbstractUser):
         verbose_name='Навыки',
         related_name='users'
     )
+    confirmation_code = models.CharField(
+        'Код подтверждения',
+        max_length=settings.LENGTH_CODE,
+        default=settings.RESERVED_CODE,
+    )
 
     USERNAME_FIELD = 'email'
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+
+    def save(self, *args, **kwargs):
+        if not self.username:
+            self.username = slugify(self.email.split('@')[0])
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.username
