@@ -17,7 +17,7 @@ class UserSkillAdmin(admin.ModelAdmin):
 
 @admin.register(SlifeUser)
 class SlifeUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'gender', 'skills_count')
+    list_display = ('username', 'email', 'gender')
     list_filter = ('gender', 'is_active')
     search_fields = ('username', 'email', 'phone')
     readonly_fields = ('confirmation_code',)
@@ -27,20 +27,19 @@ class SlifeUserAdmin(UserAdmin):
         ('Социальные данные', {'fields': ('skills',)}),
         ('Подтверждение', {'fields': ('confirmation_code',)}),
     )
-
-    @admin.display(ordering='skills__count', description='Навыки')
-    def skills_count(self, obj):
-        return obj.skills.count()
+    add_fieldsets = (
+        (None, {'fields': ('email', 'password1', 'password2')}),
+    )
 
 
 @admin.register(Subscribe)
 class SubscribeAdmin(admin.ModelAdmin):
-    list_display = ('user_short', 'subscribing_short', 'created_at')
+    list_display = ('id', 'user_short', 'subscribing_short')
     list_filter = ('user', 'subscribing')
     search_fields = ('user__username', 'subscribing__username')
     raw_id_fields = ('user', 'subscribing')
     ordering = ('-id',)
-    
+
     @admin.display(ordering='user__username', description='Пользователь')
     def user_short(self, obj):
         return format_html(
@@ -61,4 +60,3 @@ class SubscribeAdmin(admin.ModelAdmin):
         if obj.user == obj.subscribing:
             raise ValidationError(SELF_SUBSCRIBE_ERROR)
         super().save_model(request, obj, form, change)
-

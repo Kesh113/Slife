@@ -5,13 +5,15 @@ from .models import Post, Comment, Like
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('author', 'text_short', 'created_at', 'likes_count')
-    list_filter = ('created_at', 'author')
+    list_display = ('author', 'text', 'pub_date', 'likes_count')
+    list_filter = ('pub_date', 'author')
+
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
-    list_display = ('author', 'post', 'text_short', 'created_at', 'likes_count')
-    list_filter = ('created_at', 'author')
+    list_display = ('author', 'post', 'text', 'pub_date', 'likes_count')
+    list_filter = ('pub_date', 'author')
+
 
 @admin.register(Like)
 class LikeAdmin(admin.ModelAdmin):

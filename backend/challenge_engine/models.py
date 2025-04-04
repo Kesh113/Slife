@@ -40,7 +40,7 @@ class Task(models.Model):
         'Сложность', max_length=6, choices=DIFFICULT_CHOICES
     )
     category = models.ManyToManyField(
-        CategoryTasks, on_delete=models.CASCADE, related_name='tasks'
+        CategoryTasks, related_name='tasks'
     )
 
     class Meta:
@@ -72,7 +72,8 @@ class UsersTasks(models.Model):
         blank=True, null=True, related_name='tasks_target_user'
     )
     target_user_name = models.CharField(
-        'Имя целевого пользователя', default='Без имени', blank=True
+        'Имя целевого пользователя', max_length=150,
+        default='Без имени', blank=True
     )
     status = models.CharField('Статус', max_length=10, choices=TASK_STATUSES)
     rating = models.PositiveSmallIntegerField(
