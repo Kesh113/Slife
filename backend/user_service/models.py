@@ -15,12 +15,8 @@ USERNAME_HELP_TEXT = ('Обязательное поле. Только букв�
 SELF_SUBSCRIBE_ERROR = 'Нельзя подписаться на самого себя.'
 
 
-class UserSkill(models.Model):
+class Skill(models.Model):
     title = models.CharField('Название', max_length=254, unique=True)
-    level = models.PositiveIntegerField(
-        'Уровень', validators=[MinValueValidator(1)]
-    )
-    experience = models.PositiveIntegerField('Опыт')
 
     class Meta:
         verbose_name = 'Навык'
@@ -91,9 +87,9 @@ class SlifeUser(AbstractUser):
         null=True
     )
     skills = models.ManyToManyField(
-        UserSkill,
+        Skill,
         verbose_name='Навыки',
-        related_name='users'
+        through='UserSkills'
     )
     confirmation_code = models.CharField(
         'Код подтверждения',
@@ -112,6 +108,31 @@ class SlifeUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+
+class UserSkills(models.Model):
+    user = models.ForeignKey(
+        SlifeUser, on_delete=models.CASCADE,
+        verbose_name='Пользователь', related_name='user_skills'
+    )
+    skill = models.ForeignKey(
+        Skill, on_delete=models.CASCADE,
+        verbose_name='Навык', related_name='users'
+    )
+    level = models.PositiveIntegerField(
+        'Уровень', validators=[MinValueValidator(1)]
+    )
+    experience = models.PositiveIntegerField('Опыт')
+
+    class Meta:
+        verbose_name = 'Навык пользователя'
+        verbose_name_plural = 'Навыки пользователей'
+
+    def __str__(self):
+        return (
+            f'{self.user.email} - {self.skill.title}'
+            ' {self.level} lvl, {self.experience} exp.'
+        )
 
 
 class Subscribe(models.Model):

@@ -4,14 +4,24 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.html import format_html
 
-from .models import UserSkill, SlifeUser, Subscribe, SELF_SUBSCRIBE_ERROR
+from .models import (
+    Skill, SlifeUser, UserSkills, Subscribe, SELF_SUBSCRIBE_ERROR
+)
 
 
-@admin.register(UserSkill)
+@admin.register(Skill)
 class UserSkillAdmin(admin.ModelAdmin):
-    list_display = ('title', 'level', 'experience')
+    list_display = ('id', 'title')
     search_fields = ('title',)
     ordering = ('title',)
+    list_filter = ('title',)
+
+
+@admin.register(UserSkills)
+class UserSkillsAdmin(admin.ModelAdmin):
+    list_display = ('user__username', 'skill__title', 'level', 'experience')
+    search_fields = ('user__username',)
+    ordering = ('user__username', 'skill__title', '-level')
     list_filter = ('level',)
 
 
@@ -24,7 +34,6 @@ class SlifeUserAdmin(UserAdmin):
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
         ('Персональные данные', {'fields': ('phone', 'patronymic', 'avatar', 'birth_date', 'gender')}),
-        ('Социальные данные', {'fields': ('skills',)}),
         ('Подтверждение', {'fields': ('confirmation_code',)}),
     )
     add_fieldsets = (
