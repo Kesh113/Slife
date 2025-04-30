@@ -1,4 +1,5 @@
 # flake8: noqa
+from datetime import timedelta
 import os
 from pathlib import Path
 
@@ -18,9 +19,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'djoser',
     'user_service',
     'challenge_engine',
-    'social_service'
+    'social_service',
+    'api',
 ]
 
 MIDDLEWARE = [
@@ -112,6 +116,33 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 AUTH_USER_MODEL = 'user_service.SlifeUser'
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 12,
+}
+
+
+DJOSER = {
+    'LOGIN_FIELD': 'email',
+    'SERIALIZERS': {
+        'current_user': 'api.serializers.SlifeUserSerializer',
+    },
+}
+
+
+SIMPLE_JWT = {
+   'AUTH_HEADER_TYPES': ('JWT',),
+   'ACCESS_TOKEN_LIFETIME': timedelta(days=7), # Изменить на деплое
+   'REFRESH_TOKEN_LIFETIME': timedelta(days=7)
+}
 
 
 VALID_CHARS_CODE = '0123456789'

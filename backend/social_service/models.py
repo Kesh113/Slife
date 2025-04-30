@@ -7,7 +7,7 @@ User = get_user_model()
 
 class Post(models.Model):
     author = models.ForeignKey(
-        User, on_delete=models.CASCADE, 
+        User, on_delete=models.CASCADE,
         related_name='posts', verbose_name='Автор'
     )
     image = models.ImageField(
@@ -31,8 +31,14 @@ class Post(models.Model):
 
 
 class Comment(models.Model):
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
-    author = models.ForeignKey(User, on_delete=models.CASCADE)
+    post = models.ForeignKey(
+        Post, on_delete=models.CASCADE,
+        related_name='post_comments', verbose_name='Пост'
+    )
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, 
+        related_name='comments', verbose_name='Автор'
+    )
     text = models.TextField('Текст', max_length=1000)
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
     likes_count = models.PositiveBigIntegerField(
@@ -53,7 +59,7 @@ class Like(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name='Пользователь'
     )
-    liked_at = models.DateTimeField(auto_now_add=True)
+    liked_at = models.DateTimeField('Дата лайка', auto_now_add=True)
 
     class Meta:
         abstract = True
