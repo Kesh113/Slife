@@ -1,17 +1,22 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
 
 
 User = get_user_model()
 
 
 class Post(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
-    image = models.ImageField('Изображение', upload_to='social_service/posts/images/')
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, 
+        related_name='posts', verbose_name='Автор'
+    )
+    image = models.ImageField(
+        'Изображение', upload_to='social_service/posts/images/'
+    )
     text = models.TextField('Текст', max_length=1000)
-    likes_count = models.PositiveBigIntegerField('Лайков', default=0)
+    likes_count = models.PositiveBigIntegerField(
+        'Лайков', default=0, editable=False
+    )
     is_published = models.BooleanField('Опубликовано', default=True)
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
     updated = models.DateTimeField('Дата обновления', auto_now=True)
@@ -22,7 +27,7 @@ class Post(models.Model):
         verbose_name_plural = 'Посты'
 
     def __str__(self):
-        return f'Пост {self.author} от {self.created_at}'
+        return f'Пост {self.author} от {self.pub_date}'
 
 
 class Comment(models.Model):
@@ -30,7 +35,9 @@ class Comment(models.Model):
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     text = models.TextField('Текст', max_length=1000)
     pub_date = models.DateTimeField('Дата публикации', auto_now_add=True)
-    likes_count = models.PositiveBigIntegerField('Лайков', default=0)
+    likes_count = models.PositiveBigIntegerField(
+        'Лайков', default=0, editable=False
+    )
 
     class Meta:
         ordering = '-pub_date',
@@ -44,34 +51,40 @@ class Comment(models.Model):
 
 class Like(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name='likes'
+        User, on_delete=models.CASCADE, verbose_name='Пользователь'
     )
-    created_at = models.DateTimeField('Дата лайка', auto_now_add=True)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
+    liked_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ['user', 'content_type', 'object_id']
-        indexes = [
-            models.Index(fields=['content_type', 'object_id']),
-        ]
-        verbose_name = 'Лайк'
-        verbose_name_plural = 'Лайки'
+        abstract = True
+        ordering = ['-liked_at']
 
-    def save(self, *args, **kwargs):
-        """Автоматическое обновление счётчика лайков при лайке"""
-        super().save(*args, **kwargs)
-        obj = self.content_object
-        obj.likes_count = obj.likes.count()
-        obj.save()
 
-    def delete(self, *args, **kwargs):
-        """Автоматическое обновление счётчика лайков при дизлайке"""
-        obj = self.content_object
-        super().delete(*args, **kwargs)
-        obj.likes_count = obj.likes.count()
-        obj.save()
+class PostLike(Like):
+    post = models.ForeignKey(
+        'Post', on_delete=models.CASCADE,
+        related_name='likes', verbose_name='Пост'
+    )
+
+    class Meta(Like.Meta):
+        unique_together = ('user', 'post')
+        verbose_name = 'Лайк поста'
+        verbose_name_plural = 'Лайки постов'
 
     def __str__(self):
-        return f'Лайк {self.user} для {self.content_object}'
+        return f'{self.user} лайкнул пост id={self.post.id}'
+
+
+class CommentLike(Like):
+    comment = models.ForeignKey(
+        'Comment', on_delete=models.CASCADE,
+        related_name='likes', verbose_name='Комментарий'
+    )
+
+    class Meta(Like.Meta):
+        unique_together = ('user', 'comment')
+        verbose_name = 'Лайк комментария'
+        verbose_name_plural = 'Лайки комментариев'
+
+    def __str__(self):
+        return f'{self.user} лайкнул комментарий id={self.comment.id}'

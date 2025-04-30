@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils.html import format_html
@@ -7,6 +8,9 @@ from django.utils.html import format_html
 from .models import (
     Skill, SlifeUser, UserSkills, Subscribe, SELF_SUBSCRIBE_ERROR
 )
+
+
+admin.site.unregister(Group)
 
 
 @admin.register(Skill)
@@ -27,13 +31,17 @@ class UserSkillsAdmin(admin.ModelAdmin):
 
 @admin.register(SlifeUser)
 class SlifeUserAdmin(UserAdmin):
-    list_display = ('username', 'email', 'gender')
+    list_display = ('username', 'email', 'date_joined', 'last_login')
     list_filter = ('gender', 'is_active')
     search_fields = ('username', 'email', 'phone')
     readonly_fields = ('confirmation_code',)
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
-        ('Персональные данные', {'fields': ('phone', 'patronymic', 'avatar', 'birth_date', 'gender')}),
+        ('Персональные данные', {'fields': (
+            'first_name', 'patronymic', 'last_name',
+            'phone', 'avatar', 'birth_date', 'gender'
+        )}),
+        ('Роли', {'fields': ('is_superuser', 'is_staff', 'is_active')}),
         ('Подтверждение', {'fields': ('confirmation_code',)}),
     )
     add_fieldsets = (

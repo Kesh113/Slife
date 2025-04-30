@@ -69,7 +69,8 @@ class TaskRewards(models.Model):
 
     def __str__(self):
         return (
-            f'Задание: {self.task.title[:21]}, награда: {self.reward_skills.title}'
+            f'Задание: {self.task.title[:21]}, '
+            f'награда: {self.reward_skills.title}'
         )
 
 
