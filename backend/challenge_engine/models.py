@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils.crypto import get_random_string
+from django.urls import reverse
 
 from user_service.models import Skill
 
@@ -78,28 +80,37 @@ class UsersTasks(models.Model):
     TASK_STATUSES = {
         ('started', 'начато'),
         ('completed', 'завершено'),
-        ('confirmed', 'подтверждено')
+        ('confirmed', 'подтверждено'),
+        ('canceled', 'отменено')
     }
 
     task = models.ForeignKey(
         Task, on_delete=models.CASCADE,
-        related_name='users', verbose_name='Задание'
+        related_name='user_tasks', verbose_name='Задание'
     )
     initiator = models.ForeignKey(
         User, on_delete=models.CASCADE,
-        related_name='tasks_initiator', verbose_name='Инициатор'
+        related_name='initiated_tasks', verbose_name='Инициатор'
     )
     target_user = models.ForeignKey(
         User, on_delete=models.SET_NULL,
         blank=True, null=True,
-        related_name='tasks_target_user', verbose_name='Целевой пользователь'
+        related_name='targeted_tasks', verbose_name='Целевой пользователь'
     )
     target_user_name = models.CharField(
         'Имя целевого пользователя', max_length=150,
         default='Без имени', blank=True
     )
+
     status = models.CharField(
-        'Статус', max_length=10, choices=TASK_STATUSES, default='started'
+        'Статус', max_length=21,
+        choices=TASK_STATUSES,
+        default='started'
+    )
+    invitation_token = models.CharField(
+        'Токен приглашения', max_length=100,
+        unique=True, null=True, blank=True,
+        help_text='Идентификатор анонимного пользователя'
     )
     rating = models.PositiveSmallIntegerField(
         'Оценка целевого пользователя',
@@ -117,13 +128,20 @@ class UsersTasks(models.Model):
     class Meta:
         verbose_name = 'Задание пользователя'
         verbose_name_plural = 'Задания пользователей'
+        ordering = ['-started_at']
 
     def __str__(self):
-        target_user = (
-            self.target_user.username
-            if self.target_user else self.target_user_name
-        )
-        return (
-            f'Задание - {self.task.title[:21]}, от '
-            f'{self.initiator.username} для {target_user}'
-        )
+        return f'{self.initiator} - {self.task}'
+
+    def generate_invitation_token(self):
+        """Генерирует уникальный токен для приглашения"""
+        if not self.invitation_token:
+            self.invitation_token = get_random_string(32)
+            self.save()
+        return self.invitation_token
+
+    def get_invitation_url(self):
+        """Возвращает URL для приглашения"""
+        if not self.invitation_token:
+            self.generate_invitation_token()
+        return reverse('api:task-invitation', kwargs={'token': self.invitation_token})

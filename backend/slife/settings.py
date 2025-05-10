@@ -148,3 +148,9 @@ SIMPLE_JWT = {
 VALID_CHARS_CODE = '0123456789'
 LENGTH_CODE = 6
 RESERVED_CODE = 'z' * LENGTH_CODE
+
+
+FIREBASE_CREDENTIALS_PATH = os.path.join(
+    BASE_DIR, 'config', 'firebase', 
+    'slife-31e4a-firebase-adminsdk-fbsvc-d60e903e8f.json'
+)

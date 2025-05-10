@@ -161,3 +161,30 @@ class Subscribe(models.Model):
     def clean(self):
         if self.user == self.subscribing:
             raise ValidationError(SELF_SUBSCRIBE_ERROR)
+
+
+class DeviceToken(models.Model):
+    user = models.ForeignKey(
+        SlifeUser,
+        on_delete=models.CASCADE,
+        related_name='device_tokens'
+    )
+    token = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text='FCM токен устройства'
+    )
+    device_type = models.CharField(
+        max_length=10,
+        choices=[('ios', 'iOS'), ('android', 'Android')],
+        help_text='Тип устройства'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Токен устройства'
+        verbose_name_plural = 'Токены устройств'
+
+    def __str__(self):
+        return f'{self.user} - {self.device_type}'
