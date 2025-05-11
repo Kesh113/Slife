@@ -2,9 +2,8 @@ from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer as DjoserUserSerializer
 from rest_framework import serializers
 
-from user_service.models import Subscribe, SlifeUser, UserSkills
-from challenge_engine.models import Task, CategoryTasks, UsersTasks
-from user_service.models import DeviceToken
+from user_service.models import Subscribe, UserSkills
+from challenge_engine.models import Task, CategoryTasks, UsersTasks, TaskRewards
 
 
 User = get_user_model()
@@ -57,45 +56,103 @@ class CategoryTasksSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'slug')
 
 
-class TaskSerializer(serializers.ModelSerializer):
+class TaskRewardSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(source='reward.title')
+    quantity = serializers.IntegerField()
+    is_additional = serializers.BooleanField()
+    description = serializers.CharField(source='additional_reward_description')
+
+    class Meta:
+        model = TaskRewards
+        fields = ('title', 'quantity', 'is_additional', 'description')
+
+
+class TaskBriefSerializer(serializers.ModelSerializer):
+    """Сериализатор для краткого отображения задания"""
     category = CategoryTasksSerializer(many=True, read_only=True)
     rewards = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
-        fields = (
-            'id', 'title', 'slug', 'description',
-            'difficult', 'category', 'rewards'
-        )
+        fields = ['id', 'title', 'short_description', 'rewards', 'category', 'difficulty']
 
     def get_rewards(self, obj):
-        return [skill.title for skill in obj.rewards.all()]
+        rewards = obj.task_rewards.filter(is_additional=False)
+        return [{
+            'title': reward.reward.title,
+            'quantity': reward.quantity
+        } for reward in rewards]
 
 
-class UsersTasksSerializer(serializers.ModelSerializer):
-    task = TaskSerializer(read_only=True)
-    initiator = SlifeUserSerializer(read_only=True)
-    target_user = SlifeUserSerializer(read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    invitation_url = serializers.SerializerMethodField()
+class TaskFullSerializer(serializers.ModelSerializer):
+    """Сериализатор для полной информации о задании"""
+    category = CategoryTasksSerializer(many=True, read_only=True)
+    rewards = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Task
+        fields = ['id', 'title', 'description', 'rewards', 'difficulty', 'hint', 'category']
+
+    def get_rewards(self, obj):
+        rewards = obj.task_rewards.all()
+        return [{
+            'title': reward.reward.title,
+            'quantity': reward.quantity,
+            'is_additional': reward.is_additional,
+            'description': reward.additional_reward_description if reward.is_additional else None
+        } for reward in rewards]
+
+
+class UsersTasksListSerializer(serializers.ModelSerializer):
+    task = TaskBriefSerializer(read_only=True)
+    rating = serializers.SerializerMethodField()
+    target_user_info = serializers.SerializerMethodField()
+    confirmation_id = serializers.CharField(read_only=True)
 
     class Meta:
         model = UsersTasks
         fields = (
-            'id', 'task', 'initiator', 'target_user',
-            'target_user_name', 'status', 'status_display', 'rating',
-            'started_at', 'completed_at', 'confirmed_at', 'invitation_url'
+            'id', 'task', 'status', 'rating',
+            'started_at', 'completed_at', 'confirmed_at',
+            'target_user_info', 'confirmation_id'
         )
-        read_only_fields = ('initiator', 'started_at', 'completed_at', 'confirmed_at')
 
-    def get_invitation_url(self, obj):
-        request = self.context.get('request')
-        if request and obj.status == 'started':
-            return request.build_absolute_uri(obj.get_invitation_url())
+    def get_rating(self, obj):
+        if obj.status == 'confirmed':
+            return obj.rating
         return None
 
+    def get_target_user_info(self, obj):
+        if obj.target_user:
+            return obj.target_user.username
+        return obj.target_user_name
 
-class DeviceTokenSerializer(serializers.ModelSerializer):
+
+class UsersTasksDetailSerializer(serializers.ModelSerializer):
+    task = TaskFullSerializer(read_only=True)
+    target_user_info = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+    confirmation_id = serializers.SerializerMethodField()
+
     class Meta:
-        model = DeviceToken
-        fields = ('token', 'device_type')
+        model = UsersTasks
+        fields = (
+            'id', 'task', 'target_user_info', 'status',
+            'rating', 'started_at', 'completed_at', 'confirmed_at',
+            'confirmation_id'
+        )
+
+    def get_target_user_info(self, obj):
+        if obj.target_user:
+            return obj.target_user.username
+        return obj.target_user_name
+
+    def get_rating(self, obj):
+        if obj.status == 'confirmed':
+            return obj.rating
+        return None
+
+    def get_confirmation_id(self, obj):
+        if obj.status == 'started':
+            return obj.generate_confirmation_id()
+        return None

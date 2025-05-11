@@ -127,6 +127,8 @@ class UserSkills(models.Model):
     class Meta:
         verbose_name = 'Навык пользователя'
         verbose_name_plural = 'Навыки пользователей'
+        unique_together = ['user', 'skill']
+        ordering = ['-level', '-experience']
 
     def __str__(self):
         return (

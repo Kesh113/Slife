@@ -1,14 +1,13 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import CategoryTasks, Task, UsersTasks, TaskRewards
+from .models import CategoryTasks, Task, TaskRewards, UsersTasks
 
 
 @admin.register(CategoryTasks)
 class CategoryTasksAdmin(admin.ModelAdmin):
-    list_display = ('title', 'slug', 'tasks_count')
-    list_filter = ('title',)
-    search_fields = ('title', 'slug')
+    list_display = ('title', 'slug')
+    search_fields = ('title',)
     prepopulated_fields = {'slug': ('title',)}
 
     @admin.display(ordering='tasks_count', description='Заданий')
@@ -25,14 +24,14 @@ class TaskRewardsInline(admin.TabularInline):
 class TaskAdmin(admin.ModelAdmin):
     list_display = (
         'title_short', 'slug', 'display_category',
-        'display_rewards', 'difficult'
+        'display_rewards', 'difficulty'
     )
-    list_filter = ('difficult', )
+    list_filter = ('difficulty', 'category')
     search_fields = ('title', 'description')
     filter_horizontal = ('category',)
     prepopulated_fields = {'slug': ('title',)}
+    ordering = ['-created_at']
     inlines = [TaskRewardsInline]
-    ordering = ('difficult',)
 
     @admin.display(ordering='title', description='Название')
     def title_short(self, obj):
@@ -41,25 +40,25 @@ class TaskAdmin(admin.ModelAdmin):
     @admin.display(ordering='rewards', description='Награды')
     def display_rewards(self, obj):
         return [
-            f'{reward.reward_skills.title} ({reward.quantity})'
-            for reward
-            in obj.taskrewards_set.select_related('reward_skills').all()
+            f'{reward.reward.title} ({reward.quantity})'
+            for reward in obj.task_rewards.select_related('reward').all()
         ]
 
     @admin.display(ordering='category', description='Категории')
     def display_category(self, obj):
-        return [category for category in obj.category.all()]
+        return [category.title for category in obj.category.all()]
 
     def get_queryset(self, request):
-        # Оптимизация запросов: предзагружаем связанные данные
         return super().get_queryset(request).prefetch_related(
-            'taskrewards_set__reward_skills'
+            'task_rewards__reward', 'category'
         )
 
 
 @admin.register(TaskRewards)
-class TaskSkillsAdmin(admin.ModelAdmin):
-    list_display = ('task', 'reward_skills', 'quantity')
+class TaskRewardsAdmin(admin.ModelAdmin):
+    list_display = ('task', 'reward', 'quantity', 'is_additional')
+    list_filter = ('task', 'reward')
+    search_fields = ('task__title', 'reward__title')
 
 
 @admin.register(UsersTasks)
@@ -77,6 +76,7 @@ class UsersTasksAdmin(admin.ModelAdmin):
     )
     raw_id_fields = ('task', 'initiator', 'target_user')
     readonly_fields = ('started_at', 'completed_at', 'confirmed_at')
+    ordering = ['-started_at']
 
     @admin.display(ordering='task__title', description='Задание')
     def task_link(self, obj):

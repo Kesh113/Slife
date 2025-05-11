@@ -14,7 +14,7 @@ admin.site.unregister(Group)
 
 
 @admin.register(Skill)
-class UserSkillAdmin(admin.ModelAdmin):
+class SkillAdmin(admin.ModelAdmin):
     list_display = ('id', 'title')
     search_fields = ('title',)
     ordering = ('title',)
@@ -26,7 +26,15 @@ class UserSkillsAdmin(admin.ModelAdmin):
     list_display = ('user__username', 'skill__title', 'level', 'experience')
     search_fields = ('user__username',)
     ordering = ('user__username', 'skill__title', '-level')
-    list_filter = ('level',)
+    list_filter = ('skill__title', 'level')
+
+    @admin.display(ordering='user__username', description='Пользователь')
+    def user__username(self, obj):
+        return obj.user.username
+
+    @admin.display(ordering='skill__title', description='Навык')
+    def skill__title(self, obj):
+        return obj.skill.title
 
 
 @admin.register(SlifeUser)
